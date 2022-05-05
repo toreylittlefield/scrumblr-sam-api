@@ -1,5 +1,6 @@
 /* eslint-disable */
 const AWS = require('aws-sdk');
+const DOMPurify = require('DOMPurify');
 
 /** FOR LOCAL TESTING */
 if (process.env.NODE_ENV === 'development') {
@@ -97,9 +98,15 @@ function broadMessageToConnections(apiGateway) {
    * @param {object} message
    */
   return async function send(connectionIds, message) {
+    // santize message
+    let santizedMessage = JSON.parse(message);
+    const cleanText = DOMPurify.sanitize(santizedMessage.data.text);
+    santizedMessage.data.text = cleanText;
+    santizedMessage = JSON.stringify(santizedMessage);
+
     return await Promise.allSettled(
       connectionIds.map(async (connectionId) =>
-        apiGateway.postToConnection({ ConnectionId: connectionId, Data: JSON.stringify(message) }).promise()
+        apiGateway.postToConnection({ ConnectionId: connectionId, Data: JSON.stringify(santizedMessage) }).promise()
       )
     );
   };
